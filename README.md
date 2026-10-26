@@ -1,4 +1,4 @@
-# CricPulse AI 🏏
+# CricPulse AI
 ### Cricket Analytics & Win Probability Prediction
 
 CricPulse AI is a cricket analytics and machine learning project inspired by live cricket score platforms. It analyzes historical IPL match data, visualizes batting and bowling performance, and estimates the probability of a chasing team winning based on the current match situation.
