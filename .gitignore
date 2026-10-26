@@ -1,0 +1,15 @@
+
+.venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+.env
+data/
+models/
+
+# Raw and generated datasets
+data/raw/
+data/processed/*.csv
+
+# Generated model files
+models/*.joblib
