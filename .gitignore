@@ -1,15 +1,22 @@
 
+
 .venv/
 __pycache__/
-.pytest_cache/
 *.py[cod]
+.pytest_cache/
 .env
-data/
-models/
 
-# Raw and generated datasets
+# Raw IPL archive and training-only data
 data/raw/
-data/processed/*.csv
+data/processed/chase_training_data.csv
+data/processed/chronological_evaluation.csv
+data/processed/calibration_plot.png
+data/processed/innings_summary.csv
 
-# Generated model files
+# Keep these two runtime files available for deployment:
+# data/processed/sample_deliveries.csv
+# models/win_probability_model.joblib
+
+# Ignore other generated model artifacts
 models/*.joblib
+!models/win_probability_model.joblib

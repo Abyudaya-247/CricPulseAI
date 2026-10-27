@@ -4,4 +4,7 @@ numpy
 streamlit
 plotly
 scikit-learn
+joblib
+matplotlib
 pytest
+
