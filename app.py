@@ -18,9 +18,42 @@ st.set_page_config(
     page_icon="🏏",
     layout="wide",
 )
+st.markdown(
+    """
+    <style>
+    div[data-testid="stMetric"] {
+        background: rgba(128, 128, 128, 0.07);
+        border: 1px solid rgba(128, 128, 128, 0.20);
+        padding: 18px 20px;
+        border-radius: 12px;
+    }
 
-st.title("🏏 CricPulse AI")
-st.caption("Historical Cricket Analytics | First Prototype")
+    div[data-testid="stDataFrame"] {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    h2 {
+        padding-top: 0.6rem;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+    <div style="padding: 0.5rem 0 1rem 0;">
+        <h1 style="margin-bottom: 0.2rem;">🏏 CricPulse AI</h1>
+        <p style="color: #8b949e; font-size: 1.05rem; margin-top: 0;">
+            Cricket intelligence through data analytics and machine learning
+        </p>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.divider()
 
 
 # -----------------------------
@@ -112,17 +145,51 @@ total_wickets = int(filtered["wickets"].sum())
 total_deliveries = len(filtered)
 innings_count = filtered["innings"].nunique()
 
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3, col4 = st.columns(4, gap="medium")
 
-col1.metric("Runs in selection", f"{total_runs:,}")
-col2.metric("Wickets", total_wickets)
-col3.metric("Recorded deliveries", f"{total_deliveries:,}")
-col4.metric("Innings selected", innings_count)
+with col1:
+    st.metric(
+        label="Total Runs",
+        value=f"{total_runs:,}",
+        help="Runs scored across the selected innings.",
+    )
+
+with col2:
+    st.metric(
+        label="Wickets Lost",
+        value=f"{total_wickets:,}",
+        help="Total wickets recorded in the selected deliveries.",
+    )
+
+with col3:
+    st.metric(
+        label="Deliveries",
+        value=f"{total_deliveries:,}",
+        help="Recorded delivery rows, including extras.",
+    )
+
+with col4:
+    st.metric(
+        label="Innings Selected",
+        value=f"{innings_count:,}",
+        help="Number of distinct innings in the selection.",
+    )
+
+
+summary_display = summary[
+    ["innings", "batting_team", "runs", "wickets", "overs"]
+].rename(
+    columns={
+        "innings": "Innings",
+        "batting_team": "Batting Team",
+        "runs": "Runs",
+        "wickets": "Wickets",
+        "overs": "Overs",
+    }
+)
 
 st.dataframe(
-    summary[
-        ["innings", "batting_team", "runs", "wickets", "overs"]
-    ],
+    summary_display,
     use_container_width=True,
     hide_index=True,
 )
@@ -164,7 +231,34 @@ fig = px.line(
     title="Runs scored throughout each innings",
 )
 
-fig.update_layout(legend_title_text="Batting team")
+fig.update_layout(
+    template="plotly_white",
+    title=dict(
+        text="Runs Scored Throughout Each Innings",
+        x=0,
+        xanchor="left",
+    ),
+    showlegend=True,
+    hovermode="x unified",
+    margin=dict(l=10, r=10, t=100, b=20),
+    height=460,
+    legend=dict(
+        title_text="",
+        orientation="h",
+        yanchor="bottom",
+        y=1.08,
+        xanchor="left",
+        x=0,
+    ),
+)
+
+fig.update_xaxes(showgrid=False)
+fig.update_yaxes(
+    title_text="Cumulative Runs",
+    rangemode="tozero",
+    gridcolor="rgba(128, 128, 128, 0.15)",
+)
+
 st.plotly_chart(fig, use_container_width=True)
 
 # -----------------------------
@@ -284,6 +378,7 @@ over_stats = (
     )
 )
 
+
 fig_over = px.bar(
     over_stats,
     x="over",
@@ -294,13 +389,47 @@ fig_over = px.bar(
     labels={
         "over": "Over number (zero-based in source data)",
         "runs": "Runs scored",
-        "batting_team": "Batting team",
+        "batting_team": "Batting Team",
         "wickets": "Wickets lost",
     },
-    title="Runs scored per over",
+    title="Runs Scored per Over",
+    template="plotly_white",
+)
+
+fig.update_layout(
+    template="plotly_white",
+    title=dict(
+        text="Runs Scored Throughout Each Innings",
+        x=0,
+        xanchor="left",
+    ),
+    showlegend=True,
+    hovermode="x unified",
+    margin=dict(l=10, r=10, t=100, b=20),
+    height=460,
+    legend=dict(
+        title_text="",
+        orientation="h",
+        yanchor="bottom",
+        y=1.08,
+        xanchor="left",
+        x=0,
+    ),
+)
+
+fig_over.update_xaxes(
+    showgrid=False,
+    title_text="Over Number",
+)
+
+fig_over.update_yaxes(
+    title_text="Runs Scored",
+    rangemode="tozero",
+    gridcolor="rgba(128, 128, 128, 0.15)",
 )
 
 st.plotly_chart(fig_over, use_container_width=True)
+
 
 st.dataframe(
     over_stats.sort_values(["innings", "over"]),
@@ -309,92 +438,108 @@ st.dataframe(
 )
 
 
+
+
+
 # -----------------------------
-# AI win-probability predictor
+# AI Win Probability Predictor
 # -----------------------------
 st.divider()
 st.header("🤖 AI Win Probability Predictor")
+
 st.caption(
-    "Experimental model trained on historical IPL chase situations. "
-    "Predictions are estimates, not guarantees."
+    "Estimate the chasing team's chance of winning using a model "
+    "trained on historical IPL chase situations. This is an experimental "
+    "estimate, not a guarantee or live match prediction."
 )
 
 MODEL_FILE = PROJECT_ROOT / "models" / "win_probability_model.joblib"
 
-if not MODEL_FILE.exists():
-    st.warning(
-        "Trained model not found. Run "
-        "`python src/train_model.py` first."
-    )
-else:
-    try:
+try:
+    if not MODEL_FILE.exists():
+        st.error(
+            "Trained model not found. Ensure "
+            "models/win_probability_model.joblib exists."
+        )
+    else:
         artifact = joblib.load(MODEL_FILE)
         model = artifact["model"]
         features = artifact["features"]
 
         with st.form("win_probability_form"):
-            st.subheader("Enter the match situation")
+            st.subheader("Chase Situation")
 
-            col1, col2 = st.columns(2)
+            input_col1, input_col2 = st.columns(2)
 
-            with col1:
-                target = st.number_input(
+            with input_col1:
+                target_runs = st.number_input(
                     "Target score",
                     min_value=1,
-                    max_value=400,
+                    max_value=500,
                     value=180,
                     step=1,
+                    help="The total score the chasing team needs to reach.",
                 )
 
                 current_score = st.number_input(
                     "Current score",
                     min_value=0,
-                    max_value=400,
-                    value=96,
+                    max_value=500,
+                    value=75,
                     step=1,
                 )
 
-                wickets_lost = st.slider(
+                wickets_lost = st.number_input(
                     "Wickets lost",
                     min_value=0,
                     max_value=10,
-                    value=3,
+                    value=2,
+                    step=1,
                 )
 
-            with col2:
-                legal_balls = st.slider(
+            with input_col2:
+                balls_bowled = st.number_input(
                     "Legal balls bowled",
                     min_value=0,
                     max_value=120,
-                    value=72,
+                    value=60,
+                    step=1,
+                    help="For a standard 20-over innings, the maximum is 120.",
                 )
 
             submitted = st.form_submit_button(
-                "Predict win probability",
+                "Predict Win Probability",
                 type="primary",
+                use_container_width=True,
             )
 
         if submitted:
-            if current_score >= target:
-                st.info(
+            runs_required = max(int(target_runs) - int(current_score), 0)
+            balls_remaining = 120 - int(balls_bowled)
+            wickets_remaining = 10 - int(wickets_lost)
+
+            if current_score >= target_runs:
+                st.success(
                     "The target has already been reached. "
-                    "This is a completed chase state, not a "
-                    "prediction problem."
+                    "The chase is complete."
                 )
 
-            elif wickets_lost >= 10 or legal_balls >= 120:
-                st.info(
-                    "The innings has ended. Enter a non-terminal "
-                    "match situation."
+            elif wickets_remaining == 0:
+                st.warning(
+                    "All 10 wickets have fallen. "
+                    "The chasing innings is complete."
+                )
+
+            elif balls_remaining == 0:
+                st.warning(
+                    "The 20-over limit has been reached. "
+                    "The chase is complete."
                 )
 
             else:
-                runs_required = target - current_score
-                balls_remaining = 120 - legal_balls
-
                 current_run_rate = (
-                    current_score * 6 / legal_balls
-                    if legal_balls > 0
+                    int(current_score) * 6 / int(balls_bowled)
+                    if balls_bowled > 0
                     else 0.0
                 )
 
@@ -402,54 +547,81 @@ else:
                     runs_required * 6 / balls_remaining
                 )
 
-                input_row = pd.DataFrame([{
-                    "target_runs": target,
-                    "current_score": current_score,
-                    "runs_required": runs_required,
-                    "wickets_remaining": 10 - wickets_lost,
-                    "balls_remaining": balls_remaining,
-                    "current_run_rate": current_run_rate,
-                    "required_run_rate": required_run_rate,
-                }])[features]
+                input_values = {
+                    "target_runs": float(target_runs),
+                    "current_score": float(current_score),
+                    "runs_required": float(runs_required),
+                    "wickets_remaining": float(wickets_remaining),
+                    "balls_remaining": float(balls_remaining),
+                    "current_run_rate": float(current_run_rate),
+                    "required_run_rate": float(required_run_rate),
+                }
 
-                probability = model.predict_proba(input_row)[0]
-                classes = list(model.classes_)
-                win_probability = float(
-                    probability[classes.index(1)]
+                input_row = pd.DataFrame(
+                    [[input_values[name] for name in features]],
+                    columns=features,
                 )
 
-                st.subheader("Prediction")
+                if hasattr(model, "predict_proba"):
+                    probabilities = model.predict_proba(input_row)[0]
+                    classes = list(model.classes_)
 
-                col1, col2, col3 = st.columns(3)
+                    if 1 not in classes:
+                        st.error(
+                            "The trained model does not contain "
+                            "the expected win class (1)."
+                        )
+                    else:
+                        win_probability = float(
+                            probabilities[classes.index(1)]
+                        )
+                        win_probability = min(
+                            max(win_probability, 0.0), 1.0
+                        )
 
-                col1.metric("Runs required", runs_required)
-                col2.metric("Balls remaining", balls_remaining)
-                col3.metric(
-                    "Required run rate",
-                    f"{required_run_rate:.2f}",
-                )
+                        st.subheader("Prediction Result")
 
-                st.progress(win_probability)
+                        result_col1, result_col2 = st.columns(2)
 
-                st.metric(
-                    "Estimated chasing-team win probability",
-                    f"{win_probability:.1%}",
-                )
+                        result_col1.metric(
+                            "Estimated Chance of Winning",
+                            f"{win_probability:.1%}",
+                        )
 
-                st.caption(
-                    "This is the model's raw probability estimate. "
-                    "It has not yet been independently validated for "
-                    "calibration across different match situations."
-                )
+                        result_col2.metric(
+                            "Estimated Chance of Losing",
+                            f"{1 - win_probability:.1%}",
+                        )
 
-    except Exception as exc:
-        st.error(f"Could not load or run the prediction model: {exc}")
+                        st.progress(win_probability)
+
+                        st.caption(
+                            f"{runs_required} runs needed from "
+                            f"{balls_remaining} legal balls, with "
+                            f"{wickets_remaining} wickets remaining."
+                        )
+
+                        st.info(
+                            "This is a model-based estimate from "
+                            "historical data. It is not a live forecast, "
+                            "and its calibration and reliability may vary."
+                        )
+                else:
+                    st.error(
+                        "The loaded model does not support "
+                        "probability predictions."
+                    )
+
+except Exception as exc:
+    st.error(f"Could not load or run the prediction model: {exc}")
 
 
-
-
+# -----------------------------
+# Footer
+# -----------------------------
 st.divider()
 st.caption(
-    "CricPulse AI • Historical data prototype • "
-    "Live scores and win-probability predictions are future milestones."
+    "CricPulse AI • Historical cricket analytics • "
+    "Experimental machine-learning win probability"
 )
+
