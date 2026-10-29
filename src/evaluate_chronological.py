@@ -1,4 +1,6 @@
+import matplotlib.pyplot as plt
 
+from sklearn.calibration import calibration_curve
 from pathlib import Path
 
 import pandas as pd
@@ -135,6 +137,46 @@ def main():
     model_metrics = evaluate(
         y_test, model_prob, model_pred
     )
+
+    
+    # Calibration analysis for predicted win probabilities.
+    # Quantile bins aim to put a similar number of rows in each bin.
+    observed_win_rate, mean_predicted_probability = calibration_curve(
+        y_test,
+        model_prob,
+        n_bins=10,
+        strategy="quantile",
+    )
+
+    calibration_file = (
+        ROOT / "data" / "processed" / "calibration_plot.png"
+    )
+    calibration_file.parent.mkdir(parents=True, exist_ok=True)
+
+    plt.figure(figsize=(8, 6))
+    plt.plot(
+        mean_predicted_probability,
+        observed_win_rate,
+        marker="o",
+        label="Logistic regression",
+    )
+    plt.plot(
+        [0, 1],
+        [0, 1],
+        linestyle="--",
+        label="Perfect calibration",
+    )
+    plt.xlabel("Mean predicted win probability")
+    plt.ylabel("Observed win frequency")
+    plt.title("CricPulse AI — Probability Calibration")
+    plt.legend()
+    plt.grid(alpha=0.25)
+    plt.tight_layout()
+    plt.savefig(calibration_file, dpi=150)
+    plt.close()
+
+    print(f"\nCalibration plot saved to: {calibration_file}")
+
 
     print("\n=== CRICPULSE AI: CHRONOLOGICAL EVALUATION ===")
     print(f"Training seasons: before {TEST_START_YEAR}")
